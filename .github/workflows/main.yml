@@ -1,0 +1,40 @@
+name: eShop build
+
+on:
+  push:
+    paths:
+    # 觸發這區域程式才動，以前叫master 現在叫main
+    - 'src/Services/Coupon/**'
+    - 'tests/Services/Coupon/**'
+    branches: [ main ]
+
+jobs:
+  build-and-push-docker-image:
+  # 跑在什麼作業系統上
+    runs-on: ubuntu-latest
+    steps:
+    # 將Code pull下來
+    - name: Get code from the repository
+      uses: actions/checkout@v1
+      with:
+        ref: main
+
+    - name: Run unit tests
+      run: dotnet test tests/Services/Coupon/*.Tests/*.csproj
+      env:
+        DOTNET_CLI_TELEMETRY_OPTOUT: true
+        DOTNET_NOLOGO: true
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v1.1.0
+      with:
+      #程式包成image
+      # 要用到變數 Setting的就會用此傳出
+        username: ${{ secrets.REGISTRY_USERNAME }}
+        password: ${{ secrets.REGISTRY_PASSWORD }}
+        registry: ${{ secrets.REGISTRY_LOGIN_SERVER }}
+        path: .
+        dockerfile: './src/Services/Coupon/Coupon.API/Dockerfile.acr'
+        repository: 'coupon.api'
+        tags: 'linux-latest'
+        push: true
